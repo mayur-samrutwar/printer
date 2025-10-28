@@ -14,8 +14,14 @@
             --slot-top: 32%;                 /* vertical position of the printer slot */
             --slot-window-width: 170px;     /* visible area width */
             --slot-window-height: 260px;    /* taller so top edge never cuts paper */
-            --print-duration: 4.5s;         /* slower print animation */
+            --print-duration: 7s;           /* slower print animation */
             --print-start-delay: 700ms;     /* delay before motion starts */
+            /* stepwise movement offsets for stop-and-go effect */
+            --step-1: 200px;
+            --step-2: 150px;
+            --step-3: 100px;
+            --step-4: 60px;
+            --step-5: 30px;
         }
         
         * {
@@ -93,14 +99,30 @@
         }
         
         @keyframes paperSlideUp {
-            0% {
-                /* start at slot */
-                transform: translateX(-50%) translateY(var(--paper-start-offset));
-            }
-            100% {
-                /* move up out of the slot */
-                transform: translateX(-50%) translateY(var(--paper-final-offset));
-            }
+            /* Start */
+            0% { transform: translateX(-50%) translateY(var(--paper-start-offset)); }
+            /* Move to step 1 */
+            10% { transform: translateX(-50%) translateY(var(--step-1)); }
+            /* Pause */
+            18% { transform: translateX(-50%) translateY(var(--step-1)); }
+            /* Move to step 2 */
+            28% { transform: translateX(-50%) translateY(var(--step-2)); }
+            /* Pause */
+            36% { transform: translateX(-50%) translateY(var(--step-2)); }
+            /* Move to step 3 */
+            46% { transform: translateX(-50%) translateY(var(--step-3)); }
+            /* Pause */
+            54% { transform: translateX(-50%) translateY(var(--step-3)); }
+            /* Move to step 4 */
+            62% { transform: translateX(-50%) translateY(var(--step-4)); }
+            /* Pause */
+            70% { transform: translateX(-50%) translateY(var(--step-4)); }
+            /* Move to step 5 */
+            78% { transform: translateX(-50%) translateY(var(--step-5)); }
+            /* Brief pause */
+            84% { transform: translateX(-50%) translateY(var(--step-5)); }
+            /* Final long print to end */
+            100% { transform: translateX(-50%) translateY(var(--paper-final-offset)); }
         }
         
         .print-btn {
