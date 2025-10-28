@@ -10,7 +10,7 @@
         :root {
             /* Positive pushes paper downward; negative moves it upward */
             --paper-start-offset: 260px;     /* where animation starts (at slot) */
-            --paper-final-offset: 0px;   /* where animation ends (out of slot) */
+            --paper-final-offset: 20px;   /* where animation ends (out of slot) */
             --slot-top: 32%;                 /* vertical position of the printer slot */
             --slot-window-width: 170px;     /* visible area width */
             --slot-window-height: 260px;    /* taller so top edge never cuts paper */
@@ -184,7 +184,7 @@
     </style>
 </head>
 <body class="min-h-screen bg-white flex items-center justify-center">
-    <div class="flex flex-col items-center space-y-12 px-6">
+    <div class="flex flex-col items-center space-y-12 px-6 pt-16 md:pt-24">
         
         <!-- Printer Container -->
         <div class="printer-container">
@@ -202,7 +202,7 @@
                         <div style="text-align: center; font-weight: bold;">ASTRO LABS</div>
                         <div class="paper-line"></div>
                         <div>Date: <span id="receiptDate"></span></div>
-                        <div style="margin-top: 8px;">Transaction: #00123</div>
+                        <div style="margin-top: 4px;">Transaction: #00069</div>
                         <div class="paper-line" style="margin-top: 10px;"></div>
                         <div style="margin-top: 6px; font-weight: 600; text-align: center;">Social</div>
                         <div style="margin-top: 6px; display: flex; justify-content: space-between;">
