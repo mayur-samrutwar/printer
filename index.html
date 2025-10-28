@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASTRO LABS Printer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        :root {
+            /* Positive pushes paper downward; negative moves it upward */
+            --paper-start-offset: 260px;     /* where animation starts (at slot) */
+            --paper-final-offset: 0px;   /* where animation ends (out of slot) */
+            --slot-top: 32%;                 /* vertical position of the printer slot */
+            --slot-window-width: 170px;     /* visible area width */
+            --slot-window-height: 260px;    /* taller so top edge never cuts paper */
+            --print-duration: 4.5s;         /* slower print animation */
+            --print-start-delay: 700ms;     /* delay before motion starts */
+        }
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .printer-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        /* Window that clips the paper to only be visible around the slot */
+        .slot-window {
+            position: absolute;
+            /* Reveal area ABOVE the slot so paper is hidden below the line */
+            top: calc(var(--slot-top) - var(--slot-window-height));
+            left: 50%;
+            transform: translateX(-50%);
+            width: var(--slot-window-width);
+            height: var(--slot-window-height);
+            overflow: hidden;
+            z-index: 2;
+            pointer-events: none;
+        }
+        /* Paper inside the window */
+        .paper-strip {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            width: 140px;
+            height: 280px;
+            transform: translateX(-50%) translateY(var(--paper-final-offset));
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            will-change: transform;
+        }
+        /* Small dark lip to sell the slot illusion */
+        .slot-lip {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            /* Place the lip slightly below the slot line */
+            bottom: -8px;
+            width: calc(var(--slot-window-width) + 12px);
+            height: 6px;
+            background: #0f1115;
+            border-radius: 3px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+            z-index: 3;
+        }
+        
+        .paper-content {
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            line-height: 1.6;
+            color: #000;
+        }
+        
+        .paper-line {
+            border-bottom: 1px dashed #ccc;
+            margin: 8px 0;
+        }
+        
+        .paper-strip.animate {
+            animation: paperSlideUp var(--print-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            animation-delay: var(--print-start-delay);
+        }
+        
+        .paper-strip.visible {
+            opacity: 1;
+        }
+        
+        @keyframes paperSlideUp {
+            0% {
+                /* start at slot */
+                transform: translateX(-50%) translateY(var(--paper-start-offset));
+            }
+            100% {
+                /* move up out of the slot */
+                transform: translateX(-50%) translateY(var(--paper-final-offset));
+            }
+        }
+        
+        .print-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .print-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3);
+        }
+        
+        .print-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* no printer glow */
+    </style>
+</head>
+<body class="min-h-screen bg-white flex items-center justify-center">
+    <div class="flex flex-col items-center space-y-12 px-6">
+        
+        <!-- Printer Container -->
+        <div class="printer-container">
+            <img 
+                id="printer" 
+                src="printer.png" 
+                alt="ASTRO LABS Printer" 
+                class="w-[26rem] md:w-[34rem] max-w-full h-auto"
+            >
+            <!-- Clipping window around the slot -->
+            <div class="slot-window">
+                <div class="slot-lip"></div>
+                <div id="paperStrip" class="paper-strip">
+                    <div class="paper-content">
+                        <div style="text-align: center; font-weight: bold;">ASTRO LABS</div>
+                        <div style="text-align: center; margin-top: 4px;">Receipt Printer</div>
+                        <div class="paper-line"></div>
+                        <div style="text-align: center;">AI code agent receipt</div>
+                        <div class="paper-line"></div>
+                        <div>Date: <span id="receiptDate"></span></div>
+                        <div style="margin-top: 8px;">Transaction: #00123</div>
+                        <div style="margin-top: 8px;">Status: <span style="font-weight: bold;">SUCCESS</span></div>
+                        <div style="margin-top: 16px; font-size: 8px; text-align: center;">
+                            Thank you for using ASTRO LABS
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Print Button -->
+        <button 
+            id="printBtn"
+            class="print-btn px-12 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-lg text-lg tracking-wide"
+        >
+            Print
+        </button>
+        
+    </div>
+
+    <script>
+        const printBtn = document.getElementById('printBtn');
+        const paperStrip = document.getElementById('paperStrip');
+        const printer = document.getElementById('printer');
+        const receiptDate = document.getElementById('receiptDate');
+        
+        let isPrinting = false;
+        
+        // Set current date
+        const now = new Date();
+        const formattedDate = now.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        receiptDate.textContent = formattedDate;
+        
+        printBtn.addEventListener('click', () => {
+            if (isPrinting) return;
+            
+            isPrinting = true;
+            
+            // No glow/pulse around printer – keep it static and clean
+            
+            // Reset and show paper strip using the same CSS variable values
+            const styles = getComputedStyle(document.documentElement);
+            const startOffset = styles.getPropertyValue('--paper-start-offset').trim();
+            const finalOffset = styles.getPropertyValue('--paper-final-offset').trim();
+            paperStrip.style.transform = `translateX(-50%) translateY(${startOffset})`;
+            paperStrip.classList.add('visible');
+            
+            // Trigger animation after configurable delay
+            const rootStyles = getComputedStyle(document.documentElement);
+            const delayVar = rootStyles.getPropertyValue('--print-start-delay').trim();
+            const delayMs = delayVar.endsWith('ms') || delayVar.endsWith('s')
+                ? (delayVar.endsWith('s') ? parseFloat(delayVar) * 1000 : parseInt(delayVar))
+                : 700;
+            // Use CSS animation-delay; just toggle the class
+            paperStrip.classList.add('animate');
+            
+            // Disable button during animation
+            printBtn.disabled = true;
+            printBtn.style.opacity = '0.6';
+            printBtn.style.cursor = 'not-allowed';
+            
+            // Re-enable button after animation completes (duration + delay)
+            const durationVar = rootStyles.getPropertyValue('--print-duration').trim();
+            const durationMs = durationVar.endsWith('ms') || durationVar.endsWith('s')
+                ? (durationVar.endsWith('s') ? parseFloat(durationVar) * 1000 : parseInt(durationVar))
+                : 2500;
+            setTimeout(() => {
+                paperStrip.classList.remove('animate');
+                // Keep paper visible and locked to final offset (no jump)
+                paperStrip.style.transform = `translateX(-50%) translateY(${finalOffset})`;
+                isPrinting = false;
+                printBtn.disabled = false;
+                printBtn.style.opacity = '1';
+                printBtn.style.cursor = 'pointer';
+            }, (isNaN(durationMs) ? 2500 : durationMs) + (isNaN(delayMs) ? 700 : delayMs));
+        });
+    </script>
+</body>
+</html>
+
